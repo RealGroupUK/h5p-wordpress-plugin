@@ -97,6 +97,7 @@ class H5PPrivacyPolicy {
       SELECT
         res.content_id,
         res.user_id,
+        res.blog_id,
         res.score,
         res.max_score,
         res.opened,
@@ -104,8 +105,8 @@ class H5PPrivacyPolicy {
         res.time,
         con.title
       FROM
-        {$wpdb->prefix}h5p_results AS res,
-        {$wpdb->prefix}h5p_contents AS con
+        {$wpdb->base_prefix}h5p_results AS res,
+        {$wpdb->base_prefix}h5p_contents AS con
       WHERE
         res.user_id = %d AND
         res.content_id = con.id
@@ -135,6 +136,7 @@ class H5PPrivacyPolicy {
         scs.content_id,
         scs.sub_content_id,
         scs.user_id,
+        scs.blog_id,
         scs.data_id,
         scs.data,
         scs.preload,
@@ -142,8 +144,8 @@ class H5PPrivacyPolicy {
         scs.updated_at,
         con.title
       FROM
-        {$wpdb->prefix}h5p_contents_user_data AS scs,
-        {$wpdb->prefix}h5p_contents AS con
+        {$wpdb->base_prefix}h5p_contents_user_data AS scs,
+        {$wpdb->base_prefix}h5p_contents AS con
       WHERE
         scs.user_id = %d AND
         scs.content_id = con.id
@@ -172,7 +174,7 @@ class H5PPrivacyPolicy {
       SELECT
         *
       FROM
-        {$wpdb->prefix}h5p_events
+        {$wpdb->base_prefix}h5p_events
       WHERE
         user_id = %d
       LIMIT
@@ -212,8 +214,8 @@ class H5PPrivacyPolicy {
         con.content_type,
         lib.title AS library_title
       FROM
-        {$wpdb->prefix}h5p_contents AS con,
-        {$wpdb->prefix}h5p_libraries AS lib
+        {$wpdb->base_prefix}h5p_contents AS con,
+        {$wpdb->base_prefix}h5p_libraries AS lib
       WHERE
         con.user_id = %d AND
         con.library_id = lib.id
@@ -239,8 +241,8 @@ class H5PPrivacyPolicy {
     $items = $this->get_user_results($wpid, $page);
 
     // Set time related parameters
-    $datetimeformat = get_option('date_format') . ' ' . get_option('time_format');
-    $offset = get_option('gmt_offset') * 3600;
+    $datetimeformat = get_site_option('date_format') . ' ' . get_site_option('time_format');
+    $offset = get_site_option('gmt_offset') * 3600;
 
     foreach ($items as $item) {
       // Compute time
@@ -364,8 +366,8 @@ class H5PPrivacyPolicy {
     $items = $this->get_user_events($wpid, $page);
 
     // Set time related parameters
-    $datetimeformat = get_option('date_format') . ' ' . get_option('time_format');
-    $offset = get_option('gmt_offset') * 3600;
+    $datetimeformat = get_site_option('date_format') . ' ' . get_site_option('time_format');
+    $offset = get_site_option('gmt_offset') * 3600;
 
     foreach ($items as $item) {
       $data = array(
@@ -551,23 +553,23 @@ class H5PPrivacyPolicy {
     if ($wp_user) {
       $length = array();
       $length[] = $wpdb->query($wpdb->prepare(
-        "DELETE FROM {$wpdb->prefix}h5p_results WHERE user_id = %d LIMIT %d",
+        "DELETE FROM {$wpdb->base_prefix}h5p_results WHERE user_id = %d LIMIT %d",
         $wp_user->ID,
         self::PAGE_LENGTH
       ));
       $length[] = $wpdb->query($wpdb->prepare(
-        "DELETE FROM {$wpdb->prefix}h5p_contents_user_data WHERE user_id = %d LIMIT %d",
+        "DELETE FROM {$wpdb->base_prefix}h5p_contents_user_data WHERE user_id = %d LIMIT %d",
         $wp_user->ID,
         self::PAGE_LENGTH
       ));
       $length[] = $wpdb->query($wpdb->prepare(
-        "DELETE FROM {$wpdb->prefix}h5p_events WHERE user_id = %d LIMIT %d",
+        "DELETE FROM {$wpdb->base_prefix}h5p_events WHERE user_id = %d LIMIT %d",
         $wp_user->ID,
         self::PAGE_LENGTH
       ));
       $length[] = $wpdb->query($wpdb->prepare(
         // Only anonymize data by linking them to the admin
-        "UPDATE {$wpdb->prefix}h5p_contents SET user_id = %d WHERE user_id = %d LIMIT %d",
+        "UPDATE {$wpdb->base_prefix}h5p_contents SET user_id = %d WHERE user_id = %d LIMIT %d",
         $admin_prime_id,
         $wp_user->ID,
         self::PAGE_LENGTH

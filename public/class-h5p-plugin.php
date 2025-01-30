@@ -156,7 +156,7 @@ class H5P_Plugin {
     $plugin->get_library_updates();
 
     // Always check setup requirements when activating
-    update_option('h5p_check_h5p_requirements', TRUE);
+    update_site_option('h5p_check_h5p_requirements', TRUE);
 
     // Cleaning rutine
     wp_schedule_event(time() + (3600 * 24), 'daily', 'h5p_daily_cleanup');
@@ -194,7 +194,7 @@ class H5P_Plugin {
     $charset = self::determine_charset();
 
     // Keep track of h5p content entities
-    dbDelta("CREATE TABLE {$wpdb->prefix}h5p_contents (
+    dbDelta("CREATE TABLE {$wpdb->base_prefix}h5p_contents (
       id INT UNSIGNED NOT NULL AUTO_INCREMENT,
       created_at TIMESTAMP NOT NULL DEFAULT 0,
       updated_at TIMESTAMP NOT NULL DEFAULT 0,
@@ -222,7 +222,7 @@ class H5P_Plugin {
     ) {$charset};");
 
     // Keep track of content dependencies
-    dbDelta("CREATE TABLE {$wpdb->prefix}h5p_contents_libraries (
+    dbDelta("CREATE TABLE {$wpdb->base_prefix}h5p_contents_libraries (
       content_id INT UNSIGNED NOT NULL,
       library_id INT UNSIGNED NOT NULL,
       dependency_type VARCHAR(31) NOT NULL,
@@ -232,48 +232,50 @@ class H5P_Plugin {
     ) {$charset};");
 
     // Keep track of data/state when users use content (contents >-< users)
-    dbDelta("CREATE TABLE {$wpdb->prefix}h5p_contents_user_data (
+    dbDelta("CREATE TABLE {$wpdb->base_prefix}h5p_contents_user_data (
       content_id INT UNSIGNED NOT NULL,
       user_id INT UNSIGNED NOT NULL,
+      blog_id INT UNSIGNED NOT NULL,
       sub_content_id INT UNSIGNED NOT NULL,
       data_id VARCHAR(127) NOT NULL,
       data LONGTEXT NOT NULL,
       preload TINYINT UNSIGNED NOT NULL DEFAULT 0,
       invalidate TINYINT UNSIGNED NOT NULL DEFAULT 0,
-      updated_at TIMESTAMP NOT NULL DEFAULT 0,
-      PRIMARY KEY  (content_id,user_id,sub_content_id,data_id)
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY  (content_id,user_id,blog_id,sub_content_id,data_id)
     ) {$charset};");
 
     // Create a relation between tags and content
-    dbDelta("CREATE TABLE {$wpdb->prefix}h5p_contents_tags (
+    dbDelta("CREATE TABLE {$wpdb->base_prefix}h5p_contents_tags (
       content_id INT UNSIGNED NOT NULL,
       tag_id INT UNSIGNED NOT NULL,
       PRIMARY KEY  (content_id,tag_id)
     ) {$charset};");
 
     // Keep track of tags
-    dbDelta("CREATE TABLE {$wpdb->prefix}h5p_tags (
+    dbDelta("CREATE TABLE {$wpdb->base_prefix}h5p_tags (
       id INT UNSIGNED NOT NULL AUTO_INCREMENT,
       name VARCHAR(31) NOT NULL,
       PRIMARY KEY  (id)
     ) {$charset};");
 
     // Keep track of results (contents >-< users)
-    dbDelta("CREATE TABLE {$wpdb->prefix}h5p_results (
+    dbDelta("CREATE TABLE {$wpdb->base_prefix}h5p_results (
       id INT UNSIGNED NOT NULL AUTO_INCREMENT,
       content_id INT UNSIGNED NOT NULL,
       user_id INT UNSIGNED NOT NULL,
+      blog_id INT UNSIGNED NOT NULL,
       score INT UNSIGNED NOT NULL,
       max_score INT UNSIGNED NOT NULL,
       opened INT UNSIGNED NOT NULL,
       finished INT UNSIGNED NOT NULL,
       time INT UNSIGNED NOT NULL,
       PRIMARY KEY  (id),
-      KEY content_user (content_id,user_id)
+      KEY content_user (content_id,user_id,blog_id)
     ) {$charset};");
 
     // Keep track of h5p libraries
-    dbDelta("CREATE TABLE {$wpdb->prefix}h5p_libraries (
+    dbDelta("CREATE TABLE {$wpdb->base_prefix}h5p_libraries (
       id INT UNSIGNED NOT NULL AUTO_INCREMENT,
       created_at TIMESTAMP NOT NULL,
       updated_at TIMESTAMP NOT NULL,
@@ -328,7 +330,7 @@ class H5P_Plugin {
     ) {$charset};");
 
     // Keep track of h5p library dependencies
-    dbDelta("CREATE TABLE {$wpdb->prefix}h5p_libraries_libraries (
+    dbDelta("CREATE TABLE {$wpdb->base_prefix}h5p_libraries_libraries (
       library_id INT UNSIGNED NOT NULL,
       required_library_id INT UNSIGNED NOT NULL,
       dependency_type VARCHAR(31) NOT NULL,
@@ -336,7 +338,7 @@ class H5P_Plugin {
     ) {$charset};");
 
     // Keep track of h5p library translations
-    dbDelta("CREATE TABLE {$wpdb->prefix}h5p_libraries_languages (
+    dbDelta("CREATE TABLE {$wpdb->base_prefix}h5p_libraries_languages (
       library_id INT UNSIGNED NOT NULL,
       language_code VARCHAR(31) NOT NULL,
       translation TEXT NOT NULL,
@@ -344,7 +346,7 @@ class H5P_Plugin {
     ) {$charset};");
 
     // Keep track of logged h5p events
-    dbDelta("CREATE TABLE {$wpdb->prefix}h5p_events (
+    dbDelta("CREATE TABLE {$wpdb->base_prefix}h5p_events (
       id INT UNSIGNED NOT NULL AUTO_INCREMENT,
       user_id INT UNSIGNED NOT NULL,
       created_at INT UNSIGNED NOT NULL,
@@ -358,7 +360,7 @@ class H5P_Plugin {
     ) {$charset};");
 
     // A set of global counters to keep track of H5P usage
-    dbDelta("CREATE TABLE {$wpdb->prefix}h5p_counters (
+    dbDelta("CREATE TABLE {$wpdb->base_prefix}h5p_counters (
       type VARCHAR(63) NOT NULL,
       library_name VARCHAR(127) NOT NULL,
       library_version VARCHAR(31) NOT NULL,
@@ -366,13 +368,13 @@ class H5P_Plugin {
       PRIMARY KEY  (type,library_name,library_version)
     ) {$charset};");
 
-    dbDelta("CREATE TABLE {$wpdb->prefix}h5p_libraries_cachedassets (
+    dbDelta("CREATE TABLE {$wpdb->base_prefix}h5p_libraries_cachedassets (
       library_id INT UNSIGNED NOT NULL,
       hash VARCHAR(64) NOT NULL,
       PRIMARY KEY  (library_id,hash)
     ) {$charset};");
 
-    dbDelta("CREATE TABLE {$wpdb->prefix}h5p_tmpfiles (
+    dbDelta("CREATE TABLE {$wpdb->base_prefix}h5p_tmpfiles (
       id INT UNSIGNED NOT NULL AUTO_INCREMENT,
       path VARCHAR(255) NOT NULL,
       created_at INT UNSIGNED NOT NULL,
@@ -381,21 +383,21 @@ class H5P_Plugin {
     ) {$charset};");
 
     // Add default setting options
-    add_option('h5p_frame', TRUE);
-    add_option('h5p_export', TRUE);
-    add_option('h5p_embed', TRUE);
-    add_option('h5p_copyright', TRUE);
-    add_option('h5p_icon', TRUE);
-    add_option('h5p_track_user', TRUE);
-    add_option('h5p_save_content_state', FALSE);
-    add_option('h5p_save_content_frequency', 30);
-    add_option('h5p_site_key', get_option('h5p_h5p_site_uuid', FALSE));
-    add_option('h5p_show_toggle_view_others_h5p_contents', 0);
+    add_site_option('h5p_frame', TRUE);
+    add_site_option('h5p_export', TRUE);
+    add_site_option('h5p_embed', TRUE);
+    add_site_option('h5p_copyright', TRUE);
+    add_site_option('h5p_icon', TRUE);
+    add_site_option('h5p_track_user', TRUE);
+    add_site_option('h5p_save_content_state', FALSE);
+    add_site_option('h5p_save_content_frequency', 30);
+    add_site_option('h5p_site_key', get_site_option('h5p_h5p_site_uuid', FALSE));
+    add_site_option('h5p_show_toggle_view_others_h5p_contents', 0);
     add_site_option('h5p_content_type_cache_updated_at', 0);
-    add_option('h5p_check_h5p_requirements', FALSE);
-    add_option('h5p_hub_is_enabled', FALSE);
-    add_option('h5p_send_usage_statistics', FALSE);
-    add_option('h5p_has_request_user_consent', FALSE);
+    add_site_option('h5p_check_h5p_requirements', FALSE);
+    add_site_option('h5p_hub_is_enabled', FALSE);
+    add_site_option('h5p_send_usage_statistics', FALSE);
+    add_site_option('h5p_has_request_user_consent', FALSE);
   }
 
   /**
@@ -435,9 +437,9 @@ class H5P_Plugin {
   public static function check_for_updates() {
     global $wpdb;
 
-    $current_version = get_option('h5p_version');
+    $current_version = get_site_option('h5p_version');
     if ($current_version === self::VERSION) {
-      return; // Same version as before
+      //return; // Same version as before
     }
 
     // We have a new version!
@@ -452,7 +454,7 @@ class H5P_Plugin {
     $between_1710_1713 = ($v->major === 1 && $v->minor === 7 && $v->patch >= 10 && $v->patch <= 13); // Target 1.7.10, 1.7.11, 1.7.12, 1.7.13
     if ($between_1710_1713) {
       // Fix tmpfiles table manually :-)
-      $wpdb->query("ALTER TABLE {$wpdb->prefix}h5p_tmpfiles ADD COLUMN id INT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY(id)");
+      $wpdb->query("ALTER TABLE {$wpdb->base_prefix}h5p_tmpfiles ADD COLUMN id INT UNSIGNED NOT NULL AUTO_INCREMENT FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY(id)");
     }
 
     // Check and update database
@@ -486,34 +488,34 @@ class H5P_Plugin {
 
     if ($pre_180) {
       // Force requirements check when hub is introduced.
-      update_option('h5p_check_h5p_requirements', TRUE);
+      update_site_option('h5p_check_h5p_requirements', TRUE);
     }
 
     if ($pre_1102 && $current_version !== '0.0.0') {
-      update_option('h5p_has_request_user_consent', TRUE);
+      update_site_option('h5p_has_request_user_consent', TRUE);
     }
 
     if ($pre_1110) {
       // Remove unused columns
-      self::drop_column("{$wpdb->prefix}h5p_contents", 'author');
-      self::drop_column("{$wpdb->prefix}h5p_contents", 'keywords');
-      self::drop_column("{$wpdb->prefix}h5p_contents", 'description');
+      self::drop_column("{$wpdb->base_prefix}h5p_contents", 'author');
+      self::drop_column("{$wpdb->base_prefix}h5p_contents", 'keywords');
+      self::drop_column("{$wpdb->base_prefix}h5p_contents", 'description');
     }
 
     if ($pre_1113 && !$pre_1110) { // 1.11.0, 1.11.1 or 1.11.2
       // There are no tmpfiles in content folders, cleanup
       $wpdb->query($wpdb->prepare(
-          "DELETE FROM {$wpdb->prefix}h5p_tmpfiles
+          "DELETE FROM {$wpdb->base_prefix}h5p_tmpfiles
             WHERE path LIKE '%s'",
           "%/h5p/content/%"));
     }
 
     // Keep track of which version of the plugin we have.
     if ($current_version === '0.0.0') {
-      add_option('h5p_version', self::VERSION);
+      add_site_option('h5p_version', self::VERSION);
     }
     else {
-      update_option('h5p_version', self::VERSION);
+      update_site_option('h5p_version', self::VERSION);
     }
   }
 
@@ -560,12 +562,12 @@ class H5P_Plugin {
     // Make sure we use the charset defined in wp-config, and not DB default.
     $charset = self::determine_charset();
     if (!empty($charset)) {
-      $wpdb->query("ALTER TABLE `{$wpdb->prefix}h5p_contents` {$charset}");
-      $wpdb->query("ALTER TABLE `{$wpdb->prefix}h5p_contents_libraries` {$charset}");
-      $wpdb->query("ALTER TABLE `{$wpdb->prefix}h5p_results` {$charset}");
-      $wpdb->query("ALTER TABLE `{$wpdb->prefix}h5p_libraries` {$charset}");
-      $wpdb->query("ALTER TABLE `{$wpdb->prefix}h5p_libraries_libraries` {$charset}");
-      $wpdb->query("ALTER TABLE `{$wpdb->prefix}h5p_libraries_languages` {$charset}");
+      $wpdb->query("ALTER TABLE `{$wpdb->base_prefix}h5p_contents` {$charset}");
+      $wpdb->query("ALTER TABLE `{$wpdb->base_prefix}h5p_contents_libraries` {$charset}");
+      $wpdb->query("ALTER TABLE `{$wpdb->base_prefix}h5p_results` {$charset}");
+      $wpdb->query("ALTER TABLE `{$wpdb->base_prefix}h5p_libraries` {$charset}");
+      $wpdb->query("ALTER TABLE `{$wpdb->base_prefix}h5p_libraries_libraries` {$charset}");
+      $wpdb->query("ALTER TABLE `{$wpdb->base_prefix}h5p_libraries_languages` {$charset}");
     }
   }
 
@@ -621,13 +623,13 @@ class H5P_Plugin {
     global $wpdb;
     $wpdb->hide_errors();
 
-    if ($wpdb->query("SHOW INDEX FROM `{$wpdb->prefix}{$table}` WHERE Key_name = '{$index}'")) {
-      $wpdb->query("ALTER TABLE `{$wpdb->prefix}{$table}` DROP INDEX `{$index}`");
+    if ($wpdb->query("SHOW INDEX FROM `{$wpdb->base_prefix}{$table}` WHERE Key_name = '{$index}'")) {
+      $wpdb->query("ALTER TABLE `{$wpdb->base_prefix}{$table}` DROP INDEX `{$index}`");
     }
 
     for ($i = 0; $i < 5; $i++) {
-      if ($wpdb->query("SHOW INDEX FROM `{$wpdb->prefix}{$table}` WHERE Key_name = '{$index}_$i'")) {
-        $wpdb->query("ALTER TABLE `{$wpdb->prefix}{$table}` DROP INDEX `{$index}_$i`");
+      if ($wpdb->query("SHOW INDEX FROM `{$wpdb->base_prefix}{$table}` WHERE Key_name = '{$index}_$i'")) {
+        $wpdb->query("ALTER TABLE `{$wpdb->base_prefix}{$table}` DROP INDEX `{$index}_$i`");
       }
     }
 
@@ -667,7 +669,7 @@ class H5P_Plugin {
     }
 
     // Keep track on how the capabilities are assigned (multisite caps or not)
-    update_option('h5p_multisite_capabilities', is_multisite() ? 1 : 0);
+    update_site_option('h5p_multisite_capabilities', is_multisite() ? 1 : 0);
   }
 
   /**
@@ -762,7 +764,9 @@ class H5P_Plugin {
    * @return string
    */
   public function get_h5p_path() {
+    switch_to_blog(1);
     $upload_dir = wp_upload_dir();
+    restore_current_blog();
     return $upload_dir['basedir'] . '/h5p';
   }
 
@@ -781,7 +785,9 @@ class H5P_Plugin {
 
     $id = get_current_blog_id();
     if (empty($url[$id])) {
+      switch_to_blog(1);
       $upload_dir = wp_upload_dir();
+      restore_current_blog();
 
       // Absolute urls are used to enqueue assets.
       $url[$id] = array('abs' => $upload_dir['baseurl'] . '/h5p');
@@ -811,7 +817,7 @@ class H5P_Plugin {
     }
 
     if (empty($language)) {
-      $language = get_option('WPLANG');
+      $language = get_site_option('WPLANG');
     }
 
     if (!empty($language)) {
@@ -834,7 +840,7 @@ class H5P_Plugin {
     if (empty(self::$interface[$id])) {
       self::$interface[$id] = new H5PWordPress();
       $language = $this->get_language();
-      self::$core[$id] = new H5PCore(self::$interface[$id], $this->get_h5p_path(), $this->get_h5p_url(), $language, get_option('h5p_export', TRUE));
+      self::$core[$id] = new H5PCore(self::$interface[$id], $this->get_h5p_path(), $this->get_h5p_url(), $language, get_site_option('h5p_export', TRUE));
       self::$core[$id]->aggregateAssets = !(defined('H5P_DISABLE_AGGREGATION') && H5P_DISABLE_AGGREGATION === true);
     }
 
@@ -891,7 +897,7 @@ class H5P_Plugin {
     if (isset($atts['slug'])) {
       $q=$wpdb->prepare(
         "SELECT  id ".
-        "FROM    {$wpdb->prefix}h5p_contents ".
+        "FROM    {$wpdb->base_prefix}h5p_contents ".
         "WHERE   slug=%s",
         $atts['slug']
       );
@@ -974,10 +980,10 @@ class H5P_Plugin {
       'library' => H5PCore::libraryToString($content['library']),
       'jsonContent' => $safe_parameters,
       'fullScreen' => $content['library']['fullscreen'],
-      'exportUrl' => get_option('h5p_export', TRUE) ? $this->get_h5p_url() . '/exports/' . ($content['slug'] ? $content['slug'] . '-' : '') . $content['id'] . '.h5p' : '',
-      'embedCode' => '<iframe src="' . admin_url('admin-ajax.php?action=h5p_embed&id=' . $content['id']) . '" width=":w" height=":h" frameborder="0" allowfullscreen="allowfullscreen" title="' . $title . '"></iframe>',
+      'exportUrl' => get_site_option('h5p_export', TRUE) ? $this->get_h5p_url() . '/exports/' . ($content['slug'] ? $content['slug'] . '-' : '') . $content['id'] . '.h5p' : '',
+      'embedCode' => '<iframe src="' . admin_url('admin-ajax.php?action=h5p_embed&id=' . $content['id']) . '&blog_id='.get_current_blog_id().'" width=":w" height=":h" frameborder="0" allowfullscreen="allowfullscreen" title="' . $title . '"></iframe>',
       'resizeCode' => '<script src="' . plugins_url('h5p/h5p-php-library/js/h5p-resizer.js') . '" charset="UTF-8"></script>',
-      'url' => admin_url('admin-ajax.php?action=h5p_embed&id=' . $content['id']),
+      'url' => admin_url('admin-ajax.php?action=h5p_embed&id=' . $content['id'].'&blog_id='.get_current_blog_id()),
       'title' => $content['title'],
       'displayOptions' => $core->getDisplayOptionsForView($content['disable'], $author_id),
       'metadata' => $metadata,
@@ -990,16 +996,17 @@ class H5P_Plugin {
 
     // Get preloaded user data for the current user
     $current_user = wp_get_current_user();
-    if (get_option('h5p_save_content_state', FALSE) && $current_user->ID) {
+    if (get_site_option('h5p_save_content_state', FALSE) && $current_user->ID) {
       $results = $wpdb->get_results($wpdb->prepare(
         "SELECT hcud.sub_content_id,
                 hcud.data_id,
                 hcud.data
-          FROM {$wpdb->prefix}h5p_contents_user_data hcud
+          FROM {$wpdb->base_prefix}h5p_contents_user_data hcud
           WHERE user_id = %d
+          AND blog_id = %d
           AND content_id = %d
           AND preload = 1",
-        $current_user->ID, $content['id']
+        $current_user->ID, get_current_blog_id(), $content['id']
       ));
 
       if ($results) {
@@ -1185,18 +1192,18 @@ class H5P_Plugin {
     $settings = array(
       'baseUrl' => get_site_url(),
       'url' => $this->get_h5p_url(),
-      'postUserStatistics' => (get_option('h5p_track_user', TRUE) === '1') && $current_user->ID,
+      'postUserStatistics' => (get_site_option('h5p_track_user', TRUE) === '1') && $current_user->ID,
       'ajax' => array(
-        'setFinished' => admin_url('admin-ajax.php?token=' . wp_create_nonce('h5p_result') . '&action=h5p_setFinished'),
+        'setFinished' => admin_url('admin-ajax.php?token=' . wp_create_nonce('h5p_result') . '&action=h5p_setFinished&blog_id='.get_current_blog_id()),
         'contentUserData' => admin_url('admin-ajax.php?token=' . wp_create_nonce('h5p_contentuserdata') . '&action=h5p_contents_user_data&content_id=:contentId&data_type=:dataType&sub_content_id=:subContentId')
       ),
-      'saveFreq' => get_option('h5p_save_content_state', FALSE) ? get_option('h5p_save_content_frequency', 30) : FALSE,
+      'saveFreq' => get_site_option('h5p_save_content_state', FALSE) ? get_site_option('h5p_save_content_frequency', 30) : FALSE,
       'siteUrl' => get_site_url(),
       'l10n' => array(
         'H5P' => $core->getLocalization(),
       ),
-      'hubIsEnabled' => get_option('h5p_hub_is_enabled', TRUE) == TRUE,
-      'reportingIsEnabled' => (get_option('h5p_enable_lrs_content_types', FALSE) === '1') ? TRUE : FALSE,
+      'hubIsEnabled' => get_site_option('h5p_hub_is_enabled', TRUE) == TRUE,
+      'reportingIsEnabled' => (get_site_option('h5p_enable_lrs_content_types', FALSE) === '1') ? TRUE : FALSE,
       'libraryConfig' => $h5p->getLibraryConfig(),
       'crossorigin' => defined('H5P_CROSSORIGIN') ? H5P_CROSSORIGIN : null,
       'crossoriginCacheBuster' => defined('H5P_CROSSORIGIN_CACHE_BUSTER') ? H5P_CROSSORIGIN_CACHE_BUSTER : null,
@@ -1305,7 +1312,7 @@ class H5P_Plugin {
     // Locate files not saved in over a day
     $files = $wpdb->get_results($wpdb->prepare(
         "SELECT path
-           FROM {$wpdb->prefix}h5p_tmpfiles
+           FROM {$wpdb->base_prefix}h5p_tmpfiles
           WHERE created_at < %d",
         $older_than)
       );
@@ -1319,7 +1326,7 @@ class H5P_Plugin {
 
     // Remove from tmpfiles table
     $wpdb->query($wpdb->prepare(
-        "DELETE FROM {$wpdb->prefix}h5p_tmpfiles
+        "DELETE FROM {$wpdb->base_prefix}h5p_tmpfiles
           WHERE created_at < %d",
         $older_than));
 
@@ -1364,7 +1371,7 @@ class H5P_Plugin {
    * @since 1.2.0
    */
   public function get_library_updates() {
-    if (get_option('h5p_hub_is_enabled', TRUE) || get_option('h5p_send_usage_statistics', TRUE)) {
+    if (get_site_option('h5p_hub_is_enabled', TRUE) || get_site_option('h5p_send_usage_statistics', TRUE)) {
       $core = $this->get_h5p_instance('core');
       $core->fetchLibrariesMetadata();
     }
@@ -1381,7 +1388,7 @@ class H5P_Plugin {
     $older_than = (time() - H5PEventBase::$log_time);
 
     $wpdb->query($wpdb->prepare("
-        DELETE FROM {$wpdb->prefix}h5p_events
+        DELETE FROM {$wpdb->base_prefix}h5p_events
 		          WHERE created_at < %d
         ", $older_than));
   }
@@ -1432,7 +1439,7 @@ class H5P_Plugin {
   public function rest_api_post(WP_REST_Request $request) {
     // Find post + check export
     $post = get_post($request->get_param('id'));
-    if (empty($post) || !get_option('h5p_export', TRUE)) {
+    if (empty($post) || !get_site_option('h5p_export', TRUE)) {
       return array(); // Post not found or export not enabled.
     }
 
@@ -1467,7 +1474,7 @@ class H5P_Plugin {
    */
   public function rest_api_all(WP_REST_Request $request) {
     // Check export
-    if (!get_option('h5p_export', TRUE)) {
+    if (!get_site_option('h5p_export', TRUE)) {
       return array(); // Export not enabled.
     }
 
@@ -1491,7 +1498,7 @@ class H5P_Plugin {
     $results = $wpdb->get_results(
       "SELECT hc.id,
               hc.slug
-        FROM {$wpdb->prefix}h5p_contents hc
+        FROM {$wpdb->base_prefix}h5p_contents hc
              {$where}"
     );
 
@@ -1593,52 +1600,56 @@ class H5P_Plugin {
   public static function uninstall() {
     global $wpdb;
 
+    return;
+
     // Drop tables
-    $wpdb->query("DROP TABLE {$wpdb->prefix}h5p_contents");
-    $wpdb->query("DROP TABLE {$wpdb->prefix}h5p_contents_libraries");
-    $wpdb->query("DROP TABLE {$wpdb->prefix}h5p_contents_user_data");
-    $wpdb->query("DROP TABLE {$wpdb->prefix}h5p_contents_tags");
-    $wpdb->query("DROP TABLE {$wpdb->prefix}h5p_tags");
-    $wpdb->query("DROP TABLE {$wpdb->prefix}h5p_results");
-    $wpdb->query("DROP TABLE {$wpdb->prefix}h5p_libraries");
-    $wpdb->query("DROP TABLE {$wpdb->prefix}h5p_libraries_libraries");
-    $wpdb->query("DROP TABLE {$wpdb->prefix}h5p_libraries_languages");
-    $wpdb->query("DROP TABLE {$wpdb->prefix}h5p_libraries_cachedassets");
-    $wpdb->query("DROP TABLE {$wpdb->prefix}h5p_counters");
-    $wpdb->query("DROP TABLE {$wpdb->prefix}h5p_events");
-    $wpdb->query("DROP TABLE {$wpdb->prefix}h5p_tmpfiles");
+    $wpdb->query("DROP TABLE {$wpdb->base_prefix}h5p_contents");
+    $wpdb->query("DROP TABLE {$wpdb->base_prefix}h5p_contents_libraries");
+    $wpdb->query("DROP TABLE {$wpdb->base_prefix}h5p_contents_user_data");
+    $wpdb->query("DROP TABLE {$wpdb->base_prefix}h5p_contents_tags");
+    $wpdb->query("DROP TABLE {$wpdb->base_prefix}h5p_tags");
+    $wpdb->query("DROP TABLE {$wpdb->base_prefix}h5p_results");
+    $wpdb->query("DROP TABLE {$wpdb->base_prefix}h5p_libraries");
+    $wpdb->query("DROP TABLE {$wpdb->base_prefix}h5p_libraries_libraries");
+    $wpdb->query("DROP TABLE {$wpdb->base_prefix}h5p_libraries_languages");
+    $wpdb->query("DROP TABLE {$wpdb->base_prefix}h5p_libraries_cachedassets");
+    $wpdb->query("DROP TABLE {$wpdb->base_prefix}h5p_counters");
+    $wpdb->query("DROP TABLE {$wpdb->base_prefix}h5p_events");
+    $wpdb->query("DROP TABLE {$wpdb->base_prefix}h5p_tmpfiles");
 
     // Remove settings
-    delete_option('h5p_version');
-    delete_option('h5p_frame');
-    delete_option('h5p_export');
-    delete_option('h5p_embed');
-    delete_option('h5p_copyright');
-    delete_option('h5p_icon');
-    delete_option('h5p_track_user');
-    delete_option('h5p_minitutorial');
-    delete_option('h5p_library_updates');
-    delete_option('h5p_ext_communication');
-    delete_option('h5p_save_content_state');
-    delete_option('h5p_save_content_frequency');
-    delete_option('h5p_show_toggle_view_others_h5p_contents');
-    delete_option('h5p_update_available');
-    delete_option('h5p_current_update');
-    delete_option('h5p_update_available_path');
-    delete_option('h5p_insert_method');
-    delete_option('h5p_last_info_print');
-    delete_option('h5p_multisite_capabilities');
-    delete_option('h5p_site_type');
-    delete_option('h5p_enable_lrs_content_types');
-    delete_option('h5p_site_key');
+    delete_site_option('h5p_version');
+    delete_site_option('h5p_frame');
+    delete_site_option('h5p_export');
+    delete_site_option('h5p_embed');
+    delete_site_option('h5p_copyright');
+    delete_site_option('h5p_icon');
+    delete_site_option('h5p_track_user');
+    delete_site_option('h5p_minitutorial');
+    delete_site_option('h5p_library_updates');
+    delete_site_option('h5p_ext_communication');
+    delete_site_option('h5p_save_content_state');
+    delete_site_option('h5p_save_content_frequency');
+    delete_site_option('h5p_show_toggle_view_others_h5p_contents');
+    delete_site_option('h5p_update_available');
+    delete_site_option('h5p_current_update');
+    delete_site_option('h5p_update_available_path');
+    delete_site_option('h5p_insert_method');
+    delete_site_option('h5p_last_info_print');
+    delete_site_option('h5p_multisite_capabilities');
+    delete_site_option('h5p_site_type');
+    delete_site_option('h5p_enable_lrs_content_types');
+    delete_site_option('h5p_site_key');
     delete_site_option('h5p_content_type_cache_updated_at');
-    delete_option('h5p_check_h5p_requirements');
-    delete_option('h5p_hub_is_enabled');
-    delete_option('h5p_send_usage_statistics');
-    delete_option('h5p_has_request_user_consent');
+    delete_site_option('h5p_check_h5p_requirements');
+    delete_site_option('h5p_hub_is_enabled');
+    delete_site_option('h5p_send_usage_statistics');
+    delete_site_option('h5p_has_request_user_consent');
 
     // Clean out file dirs.
+    switch_to_blog(1);
     $upload_dir = wp_upload_dir();
+    restore_current_blog();
     $path = $upload_dir['basedir'] . '/h5p';
 
     // Remove these regardless of their content.

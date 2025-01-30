@@ -14,7 +14,7 @@ class H5PEditorWordPressAjax implements H5PEditorAjaxInterface {
     $major_versions_sql =
       "SELECT hl.name,
                 MAX(hl.major_version) AS major_version
-           FROM {$wpdb->prefix}h5p_libraries hl
+           FROM {$wpdb->base_prefix}h5p_libraries hl
           WHERE hl.runnable = 1
        GROUP BY hl.name";
 
@@ -23,7 +23,7 @@ class H5PEditorWordPressAjax implements H5PEditorAjaxInterface {
                  hl2.major_version,
                  MAX(hl2.minor_version) AS minor_version
             FROM ({$major_versions_sql}) hl1
-            JOIN {$wpdb->prefix}h5p_libraries hl2
+            JOIN {$wpdb->base_prefix}h5p_libraries hl2
               ON hl1.name = hl2.name
              AND hl1.major_version = hl2.major_version
         GROUP BY hl2.name, hl2.major_version";
@@ -38,7 +38,7 @@ class H5PEditorWordPressAjax implements H5PEditorAjaxInterface {
                 hl4.restricted,
                 hl4.has_icon
            FROM ({$minor_versions_sql}) hl3
-           JOIN {$wpdb->prefix}h5p_libraries hl4
+           JOIN {$wpdb->base_prefix}h5p_libraries hl4
              ON hl3.name = hl4.name
             AND hl3.major_version = hl4.major_version
             AND hl3.minor_version = hl4.minor_version");
@@ -82,7 +82,7 @@ class H5PEditorWordPressAjax implements H5PEditorAjaxInterface {
 
     $result = $wpdb->get_results($wpdb->prepare(
      "SELECT library_name, max(created_at) AS max_created_at
-         FROM {$wpdb->prefix}h5p_events
+         FROM {$wpdb->base_prefix}h5p_events
         WHERE type='content' AND sub_type = 'create' AND user_id = %d
      GROUP BY library_name
      ORDER BY max_created_at DESC",
@@ -126,8 +126,8 @@ class H5PEditorWordPressAjax implements H5PEditorAjaxInterface {
 
     $result = $wpdb->get_results($wpdb->prepare(
       "SELECT hll.translation, CONCAT(hl.name, ' ', hl.major_version, '.', hl.minor_version) AS lib
-         FROM {$wpdb->prefix}h5p_libraries hl
-         JOIN {$wpdb->prefix}h5p_libraries_languages hll ON hll.library_id = hl.id
+         FROM {$wpdb->base_prefix}h5p_libraries hl
+         JOIN {$wpdb->base_prefix}h5p_libraries_languages hll ON hll.library_id = hl.id
         WHERE hll.language_code = %s
           AND CONCAT(hl.name, ' ', hl.major_version, '.', hl.minor_version) IN ({$querylibs})",
       $libraries

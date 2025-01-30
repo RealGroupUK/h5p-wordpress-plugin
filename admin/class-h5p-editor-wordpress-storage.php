@@ -21,8 +21,8 @@ class H5PEditorWordPressStorage implements H5peditorStorage {
     // Load translation field from DB
     return $wpdb->get_var($wpdb->prepare(
         "SELECT hlt.translation
-           FROM {$wpdb->prefix}h5p_libraries_languages hlt
-           JOIN {$wpdb->prefix}h5p_libraries hl ON hl.id = hlt.library_id
+           FROM {$wpdb->base_prefix}h5p_libraries_languages hlt
+           JOIN {$wpdb->base_prefix}h5p_libraries hl ON hl.id = hlt.library_id
           WHERE hl.name = %s
             AND hl.major_version = %d
             AND hl.minor_version = %d
@@ -44,8 +44,8 @@ class H5PEditorWordPressStorage implements H5peditorStorage {
 
     $results = $wpdb->get_results($wpdb->prepare(
       "SELECT hll.language_code
-         FROM {$wpdb->prefix}h5p_libraries_languages hll
-         JOIN {$wpdb->prefix}h5p_libraries hl
+         FROM {$wpdb->base_prefix}h5p_libraries_languages hll
+         JOIN {$wpdb->base_prefix}h5p_libraries hl
            ON hll.library_id = hl.id
         WHERE hl.name = %s
           AND hl.major_version = %d
@@ -69,7 +69,7 @@ class H5PEditorWordPressStorage implements H5peditorStorage {
    */
   public function keepFile($fileId) {
     global $wpdb;
-    $wpdb->delete($wpdb->prefix . 'h5p_tmpfiles', array('path' => $fileId), array('%s'));
+    $wpdb->delete($wpdb->base_prefix . 'h5p_tmpfiles', array('path' => $fileId), array('%s'));
   }
 
   /**
@@ -97,7 +97,7 @@ class H5PEditorWordPressStorage implements H5peditorStorage {
         // Look for library
         $details = $wpdb->get_row($wpdb->prepare(
             "SELECT title, runnable, restricted, tutorial_url, metadata_settings
-              FROM {$wpdb->prefix}h5p_libraries
+              FROM {$wpdb->base_prefix}h5p_libraries
               WHERE name = %s
               AND major_version = %d
               AND minor_version = %d
@@ -129,7 +129,7 @@ class H5PEditorWordPressStorage implements H5peditorStorage {
                 tutorial_url AS tutorialUrl,
                 restricted,
                 metadata_settings AS metadataSettings
-          FROM {$wpdb->prefix}h5p_libraries
+          FROM {$wpdb->base_prefix}h5p_libraries
           WHERE runnable = 1
           AND semantics IS NOT NULL
           ORDER BY title"
@@ -242,7 +242,7 @@ class H5PEditorWordPressStorage implements H5peditorStorage {
     $path .= '/' . $file->getName();
 
     // Keep track of temporary files so they can be cleaned up later.
-    $wpdb->insert($wpdb->prefix . 'h5p_tmpfiles',
+    $wpdb->insert($wpdb->base_prefix . 'h5p_tmpfiles',
       array('path' => $path, 'created_at' => time()),
       array('%s', '%d'));
 

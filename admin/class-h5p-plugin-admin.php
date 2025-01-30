@@ -179,7 +179,7 @@ class H5P_Plugin_Admin {
       if (!is_string($content)) {
 
         // Everyone is allowed to embed, set through settings
-        $embed_allowed = (get_option('h5p_embed', TRUE) && !($content['disable'] & H5PCore::DISABLE_EMBED));
+        $embed_allowed = (get_site_option('h5p_embed', TRUE) && !($content['disable'] & H5PCore::DISABLE_EMBED));
 
         /**
          * Allows other plugins to change the access permission for the
@@ -259,6 +259,9 @@ class H5P_Plugin_Admin {
 
     // Simple unavailble page
     print '<body style="margin:0"><div style="background: #fafafa url(' . plugins_url('h5p/h5p-php-library/images/h5p.svg') . ') no-repeat center;background-size: 50% 50%;width: 100%;height: 100%;"></div><div style="width:100%;position:absolute;top:75%;text-align:center;color:#434343;font-family: Consolas,monaco,monospace">' . __('Content unavailable.', $this->plugin_slug) . '</div></body>';
+    
+    //restore_current_blog_id();
+    
     exit;
   }
 
@@ -287,13 +290,13 @@ class H5P_Plugin_Admin {
 
     // Check to make sure that the correct capabilities are assigned
     if (is_multisite()) {
-      if (get_option('h5p_multisite_capabilities', 0) !== '1') {
+      if (get_site_option('h5p_multisite_capabilities', 0) !== '1') {
         // Changed from single site to multsite, re-assign capabilities
         H5P_Plugin::assign_capabilities();
       }
     }
     else {
-      if (get_option('h5p_multisite_capabilities', 0) === '1') {
+      if (get_site_option('h5p_multisite_capabilities', 0) === '1') {
         // Changed from multisite to single site, re-assign capabilities
         H5P_Plugin::assign_capabilities();
       }
@@ -303,7 +306,7 @@ class H5P_Plugin_Admin {
     $messages = array();
 
     // Always print a message after installing or upgrading
-    $last_print = get_option('h5p_last_info_print', 0);
+    $last_print = get_site_option('h5p_last_info_print', 0);
     if ($last_print !== H5P_Plugin::VERSION) {
 
       if ($last_print == 0) {
@@ -327,14 +330,14 @@ class H5P_Plugin_Admin {
 
           // Notify about H5P Hub communication changes
           if ($v->major < 1 || ($v->major === 1 && $v->minor < 8)) {
-            if (!get_option('h5p_ext_communication', TRUE)) {
+            if (!get_site_option('h5p_ext_communication', TRUE)) {
               $messages[] = sprintf(__('H5P now fetches content types directly from the H5P Hub. In order to do this, the H5P plugin will communicate with H5P.org once per day to fetch information about new and updated content types. It will send in anonymous data to the hub about H5P usage. You may disable the data contribution and/or the H5P Hub in the H5P settings.', $this->plugin_slug));
 
               // Delete old variable
-              delete_option('h5p_ext_communication');
-              delete_option('h5p_update_available');
-              delete_option('h5p_current_update');
-              delete_option('h5p_update_available_path');
+              delete_site_option('h5p_ext_communication');
+              delete_site_option('h5p_update_available');
+              delete_site_option('h5p_current_update');
+              delete_site_option('h5p_update_available_path');
             }
           }
         }
@@ -342,7 +345,7 @@ class H5P_Plugin_Admin {
 
       // Always offer help
       $messages[] = sprintf(wp_kses(__('If you need any help you can always file a <a href="%s" target="_blank">Support Request</a>, check out our <a href="%s" target="_blank">Forum</a> or join the conversation in the <a href="%s" target="_blank">H5P Community Chat</a>.', $this->plugin_slug), array('a' => array('href' => array(), 'target' => array()))), esc_url('https://wordpress.org/support/plugin/h5p'), esc_url('https://h5p.org/forum'), esc_url('https://gitter.im/h5p/CommunityChat'));
-      update_option('h5p_last_info_print', H5P_Plugin::VERSION);
+      update_site_option('h5p_last_info_print', H5P_Plugin::VERSION);
     }
 
     $plugin = H5P_Plugin::get_instance();
@@ -417,7 +420,7 @@ class H5P_Plugin_Admin {
     // Process form data when upload H5Ps without content.
     add_action('load-' . $libraries_page, array($this->library, 'process_libraries'));
 
-    if (get_option('h5p_track_user', TRUE)) {
+    if (get_site_option('h5p_track_user', TRUE)) {
       $my_results = __('My Results', $this->plugin_slug);
       add_submenu_page($this->plugin_slug, $my_results, $my_results, 'view_h5p_results', $this->plugin_slug . '_results', array($this, 'display_results_page'));
     }
@@ -439,77 +442,77 @@ class H5P_Plugin_Admin {
 
       // Action bar
       $frame = filter_input(INPUT_POST, 'frame', FILTER_VALIDATE_BOOLEAN);
-      update_option('h5p_frame', $frame);
+      update_site_option('h5p_frame', $frame);
 
       $download = filter_input(INPUT_POST, 'download', FILTER_VALIDATE_INT);
-      update_option('h5p_export', $download);
+      update_site_option('h5p_export', $download);
 
       $embed = filter_input(INPUT_POST, 'embed', FILTER_VALIDATE_INT);
-      update_option('h5p_embed', $embed);
+      update_site_option('h5p_embed', $embed);
 
       $copyright = filter_input(INPUT_POST, 'copyright', FILTER_VALIDATE_BOOLEAN);
-      update_option('h5p_copyright', $copyright);
+      update_site_option('h5p_copyright', $copyright);
 
       $about = filter_input(INPUT_POST, 'about', FILTER_VALIDATE_BOOLEAN);
-      update_option('h5p_icon', $about);
+      update_site_option('h5p_icon', $about);
 
       $track_user = filter_input(INPUT_POST, 'track_user', FILTER_VALIDATE_BOOLEAN);
-      update_option('h5p_track_user', $track_user);
+      update_site_option('h5p_track_user', $track_user);
 
       $save_content_state = filter_input(INPUT_POST, 'save_content_state', FILTER_VALIDATE_BOOLEAN);
-      update_option('h5p_save_content_state', $save_content_state);
+      update_site_option('h5p_save_content_state', $save_content_state);
 
       $save_content_frequency = filter_input(INPUT_POST, 'save_content_frequency', FILTER_VALIDATE_INT);
-      update_option('h5p_save_content_frequency', $save_content_frequency);
+      update_site_option('h5p_save_content_frequency', $save_content_frequency);
 
       $show_toggle_view_others_h5p_contents = filter_input(INPUT_POST, 'show_toggle_view_others_h5p_contents', FILTER_VALIDATE_INT);
-      update_option('h5p_show_toggle_view_others_h5p_contents', $show_toggle_view_others_h5p_contents);
+      update_site_option('h5p_show_toggle_view_others_h5p_contents', $show_toggle_view_others_h5p_contents);
 
       $insert_method = filter_input(INPUT_POST, 'insert_method', FILTER_SANITIZE_SPECIAL_CHARS);
-      update_option('h5p_insert_method', $insert_method);
+      update_site_option('h5p_insert_method', $insert_method);
 
       $enable_lrs_content_types = filter_input(INPUT_POST, 'enable_lrs_content_types', FILTER_VALIDATE_BOOLEAN);
-      update_option('h5p_enable_lrs_content_types', $enable_lrs_content_types);
+      update_site_option('h5p_enable_lrs_content_types', $enable_lrs_content_types);
 
       // TODO: Make it possible to change site key
 //      $site_key = filter_input(INPUT_POST, 'site_key', FILTER_SANITIZE_SPECIAL_CHARS);
 //      if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $site_key)) {
 //        // This appears to be a valid UUID, lets use it!
-//        update_option('h5p_site_key', $site_key);
+//        update_site_option('h5p_site_key', $site_key);
 //      }
 //      else {
 //        // Invalid key, use the old one
-//        $site_key = get_option('h5p_site_key', get_option('h5p_h5p_site_uuid', FALSE));
+//        $site_key = get_site_option('h5p_site_key', get_site_option('h5p_h5p_site_uuid', FALSE));
 //      }
 
       $enable_hub = filter_input(INPUT_POST, 'enable_hub', FILTER_VALIDATE_BOOLEAN);
-      $is_hub_enabled = get_option('h5p_hub_is_enabled', TRUE) ? TRUE : NULL;
+      $is_hub_enabled = get_site_option('h5p_hub_is_enabled', TRUE) ? TRUE : NULL;
       if ($enable_hub !== $is_hub_enabled) {
         // Changed, update core
         $plugin = H5P_Plugin::get_instance();
         $core   = $plugin->get_h5p_instance('core');
         $core->fetchLibrariesMetadata($enable_hub === NULL);
       }
-      update_option('h5p_hub_is_enabled', $enable_hub);
+      update_site_option('h5p_hub_is_enabled', $enable_hub);
 
       $send_usage_statistics = filter_input(INPUT_POST, 'send_usage_statistics', FILTER_VALIDATE_BOOLEAN);
-      update_option('h5p_send_usage_statistics', $send_usage_statistics);
+      update_site_option('h5p_send_usage_statistics', $send_usage_statistics);
     }
     else {
-      $frame = get_option('h5p_frame', TRUE);
-      $download = get_option('h5p_export', TRUE);
-      $embed = get_option('h5p_embed', TRUE);
-      $copyright = get_option('h5p_copyright', TRUE);
-      $about = get_option('h5p_icon', TRUE);
-      $track_user = get_option('h5p_track_user', TRUE);
-      $save_content_state = get_option('h5p_save_content_state', FALSE);
-      $save_content_frequency = get_option('h5p_save_content_frequency', 30);
-      $show_toggle_view_others_h5p_contents = get_option('h5p_show_toggle_view_others_h5p_contents', 0);
-      $insert_method = get_option('h5p_insert_method', 'id');
-      $enable_lrs_content_types = get_option('h5p_enable_lrs_content_types', FALSE);
-      $enable_hub = get_option('h5p_hub_is_enabled', TRUE);
-//      $site_key = get_option('h5p_site_key', get_option('h5p_h5p_site_uuid', FALSE));
-      $send_usage_statistics = get_option('h5p_send_usage_statistics', TRUE);
+      $frame = get_site_option('h5p_frame', TRUE);
+      $download = get_site_option('h5p_export', TRUE);
+      $embed = get_site_option('h5p_embed', TRUE);
+      $copyright = get_site_option('h5p_copyright', TRUE);
+      $about = get_site_option('h5p_icon', TRUE);
+      $track_user = get_site_option('h5p_track_user', TRUE);
+      $save_content_state = get_site_option('h5p_save_content_state', FALSE);
+      $save_content_frequency = get_site_option('h5p_save_content_frequency', 30);
+      $show_toggle_view_others_h5p_contents = get_site_option('h5p_show_toggle_view_others_h5p_contents', 0);
+      $insert_method = get_site_option('h5p_insert_method', 'id');
+      $enable_lrs_content_types = get_site_option('h5p_enable_lrs_content_types', FALSE);
+      $enable_hub = get_site_option('h5p_hub_is_enabled', TRUE);
+//      $site_key = get_site_option('h5p_site_key', get_site_option('h5p_h5p_site_uuid', FALSE));
+      $send_usage_statistics = get_site_option('h5p_send_usage_statistics', TRUE);
     }
 
     // Attach disable hub configuration
@@ -761,22 +764,24 @@ class H5P_Plugin_Admin {
     }
 
     $user_id = get_current_user_id();
+    $blog_id = get_current_blog_id();
     $result_id = $wpdb->get_var($wpdb->prepare(
         "SELECT id
-        FROM {$wpdb->prefix}h5p_results
-        WHERE user_id = %d
+        FROM {$wpdb->base_prefix}h5p_results
+        WHERE user_id = %d AND blog_id = %d
         AND content_id = %d",
         $user_id,
+        $blog_id,
         $content_id
     ));
 
-    $table = $wpdb->prefix . 'h5p_results';
+    $table = $wpdb->base_prefix . 'h5p_results';
     $data = array(
       'score' => filter_input(INPUT_POST, 'score', FILTER_VALIDATE_INT),
       'max_score' => filter_input(INPUT_POST, 'maxScore', FILTER_VALIDATE_INT),
       'opened' => filter_input(INPUT_POST, 'opened', FILTER_VALIDATE_INT),
       'finished' => filter_input(INPUT_POST, 'finished', FILTER_VALIDATE_INT),
-      'time' => filter_input(INPUT_POST, 'time', FILTER_VALIDATE_INT)
+      'time' => filter_input(INPUT_POST, 'finished', FILTER_VALIDATE_INT) - filter_input(INPUT_POST, 'opened', FILTER_VALIDATE_INT),
     );
     if ($data['time'] === NULL) {
       $data['time'] = 0;
@@ -805,6 +810,7 @@ class H5P_Plugin_Admin {
     if (!$result_id) {
       // Insert new results
       $data['user_id'] = $user_id;
+      $data['blog_id'] = $blog_id;
       $format[] = '%d';
       $data['content_id'] = $content_id;
       $format[] = '%d';
@@ -818,8 +824,8 @@ class H5P_Plugin_Admin {
     // Get content info for log
     $content = $wpdb->get_row($wpdb->prepare("
         SELECT c.title, l.name, l.major_version, l.minor_version
-          FROM {$wpdb->prefix}h5p_contents c
-          JOIN {$wpdb->prefix}h5p_libraries l ON l.id = c.library_id
+          FROM {$wpdb->base_prefix}h5p_contents c
+          JOIN {$wpdb->base_prefix}h5p_libraries l ON l.id = c.library_id
          WHERE c.id = %d
         ", $content_id));
 
@@ -871,7 +877,7 @@ class H5P_Plugin_Admin {
 
     $query_args = array();
     return (int) $wpdb->get_var($wpdb->prepare(
-      "SELECT COUNT(id) FROM {$wpdb->prefix}h5p_results hr" .
+      "SELECT COUNT(id) FROM {$wpdb->base_prefix}h5p_results hr" .
         $this->get_results_query_where($query_args, $content_id, $user_id),
       $query_args
     ));
@@ -897,7 +903,7 @@ class H5P_Plugin_Admin {
     // Add extra fields and joins for the different result lists
     if ($content_id === NULL) {
       $extra_fields .= " hr.content_id, hc.title AS content_title,";
-      $joins .= " LEFT JOIN {$wpdb->prefix}h5p_contents hc ON hr.content_id = hc.id";
+      $joins .= " LEFT JOIN {$wpdb->base_prefix}h5p_contents hc ON hr.content_id = hc.id";
     }
     if ($user_id === NULL) {
       $extra_fields .= " hr.user_id,";
@@ -930,7 +936,7 @@ class H5P_Plugin_Admin {
               hr.opened,
               hr.finished,
               hr.time
-        FROM {$wpdb->prefix}h5p_results hr
+        FROM {$wpdb->base_prefix}h5p_results hr
         {$joins}
         {$where}
         {$order_by}
@@ -1061,7 +1067,7 @@ class H5P_Plugin_Admin {
 
     // Add toggler for hiding others' content only if user can view others content types
     $canToggleViewOthersH5PContents = current_user_can('view_others_h5p_contents') ?
-      get_option('h5p_show_toggle_view_others_h5p_contents') :
+      get_site_option('h5p_show_toggle_view_others_h5p_contents') :
     0;
 
     // Add user object to H5PIntegration
@@ -1147,8 +1153,8 @@ class H5P_Plugin_Admin {
     // Get results
     $results = $this->get_results($content_id, $user_id, $offset, $limit, $sortBy, $sortDir, $filters);
 
-    $datetimeformat = get_option('date_format') . ' ' . get_option('time_format');
-    $offset = get_option('gmt_offset') * 3600;
+    $datetimeformat = get_site_option('date_format') . ' ' . get_site_option('time_format');
+    $offset = get_site_option('gmt_offset') * 3600;
 
     // Make data more readable for humans
     $rows = array();
@@ -1231,6 +1237,7 @@ class H5P_Plugin_Admin {
     $data_id = filter_input(INPUT_GET, 'data_type');
     $sub_content_id = filter_input(INPUT_GET, 'sub_content_id');
     $current_user = wp_get_current_user();
+    $blog_id = get_current_blog_id();
 
     if ($content_id === NULL ||
         $data_id === NULL ||
@@ -1254,11 +1261,12 @@ class H5P_Plugin_Admin {
 
       if ($data === '0') {
         // Remove data
-        $wpdb->delete($wpdb->prefix . 'h5p_contents_user_data',
+        $wpdb->delete($wpdb->base_prefix . 'h5p_contents_user_data',
           array(
             'content_id' => $content_id,
             'data_id' => $data_id,
             'user_id' => $current_user->ID,
+            'blog_id' => $blog_id,
             'sub_content_id' => $sub_content_id
           ),
           array('%d', '%s', '%d', '%d'));
@@ -1271,19 +1279,21 @@ class H5P_Plugin_Admin {
         // Determine if we should update or insert
         $update = $wpdb->get_var($wpdb->prepare(
           "SELECT content_id
-           FROM {$wpdb->prefix}h5p_contents_user_data
+           FROM {$wpdb->base_prefix}h5p_contents_user_data
            WHERE content_id = %d
              AND user_id = %d
+             AND blog_id = %d
              AND data_id = %s
              AND sub_content_id = %d",
-            $content_id, $current_user->ID, $data_id, $sub_content_id
+            $content_id, $current_user->ID, $blog_id, $data_id, $sub_content_id
         ));
 
         if ($update === NULL) {
           // Insert new data
-          $wpdb->insert($wpdb->prefix . 'h5p_contents_user_data',
+          $wpdb->insert($wpdb->base_prefix . 'h5p_contents_user_data',
             array(
               'user_id' => $current_user->ID,
+              'blog_id' => $blog_id,
               'content_id' => $content_id,
               'sub_content_id' => $sub_content_id,
               'data_id' => $data_id,
@@ -1292,12 +1302,12 @@ class H5P_Plugin_Admin {
               'invalidate' => $invalidate,
               'updated_at' => current_time('mysql', 1)
             ),
-            array('%d', '%d', '%d', '%s', '%s', '%d', '%d', '%s')
+            array('%d', '%d', '%d', '%d', '%s', '%s', '%d', '%d', '%s')
           );
         }
         else {
           // Update old data
-          $wpdb->update($wpdb->prefix . 'h5p_contents_user_data',
+          $wpdb->update($wpdb->base_prefix . 'h5p_contents_user_data',
             array(
               'data' => $data,
               'preload' => $preload,
@@ -1306,12 +1316,13 @@ class H5P_Plugin_Admin {
             ),
             array(
               'user_id' => $current_user->ID,
+              'blog_id' => $blog_id,
               'content_id' => $content_id,
               'data_id' => $data_id,
               'sub_content_id' => $sub_content_id
             ),
             array('%s', '%d', '%d', '%s'),
-            array('%d', '%d', '%s', '%d')
+            array('%d', '%d', '%d', '%s', '%d')
           );
         }
       }
@@ -1324,12 +1335,13 @@ class H5P_Plugin_Admin {
       // Fetch data
       $response->data = $wpdb->get_var($wpdb->prepare(
         "SELECT hcud.data
-         FROM {$wpdb->prefix}h5p_contents_user_data hcud
+         FROM {$wpdb->base_prefix}h5p_contents_user_data hcud
          WHERE user_id = %d
+           AND blog_id = %d
            AND content_id = %d
            AND data_id = %s
            AND sub_content_id = %d",
-        $current_user->ID, $content_id, $data_id, $sub_content_id
+        $current_user->ID, $blog_id, $content_id, $data_id, $sub_content_id
       ));
 
       if ($response->data === NULL) {
@@ -1352,9 +1364,9 @@ class H5P_Plugin_Admin {
     global $wpdb;
 
     // Remove user scores/results
-    $wpdb->delete($wpdb->prefix . 'h5p_results', array('user_id' => $id), array('%d'));
+    $wpdb->delete($wpdb->base_prefix . 'h5p_results', array('user_id' => $id), array('%d'));
 
     // Remove contents user/usage data
-    $wpdb->delete($wpdb->prefix . 'h5p_contents_user_data', array('user_id' => $id), array('%d'));
+    $wpdb->delete($wpdb->base_prefix . 'h5p_contents_user_data', array('user_id' => $id), array('%d'));
   }
 }

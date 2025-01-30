@@ -101,8 +101,8 @@ class H5PContentAdmin {
     if (!is_string($this->content)) {
       $tags = $wpdb->get_results($wpdb->prepare(
           "SELECT t.name
-             FROM {$wpdb->prefix}h5p_contents_tags ct
-             JOIN {$wpdb->prefix}h5p_tags t ON ct.tag_id = t.id
+             FROM {$wpdb->base_prefix}h5p_contents_tags ct
+             JOIN {$wpdb->base_prefix}h5p_tags t ON ct.tag_id = t.id
             WHERE ct.content_id = %d",
           $id
       ));
@@ -163,7 +163,7 @@ class H5PContentAdmin {
    * @return boolean
    */
   private function current_user_can_view_content_results($content) {
-    if (!get_option('h5p_track_user', TRUE)) {
+    if (!get_site_option('h5p_track_user', TRUE)) {
       return FALSE;
     }
 
@@ -209,7 +209,7 @@ class H5PContentAdmin {
             'sortable' => TRUE
           )
         );
-        if (get_option('h5p_track_user', TRUE)) {
+        if (get_site_option('h5p_track_user', TRUE)) {
           $headers[] = (object) array(
             'class' => 'h5p-results-link'
           );
@@ -327,11 +327,11 @@ class H5PContentAdmin {
     $plugin = H5P_Plugin::get_instance();
 
     $consent = filter_input(INPUT_POST, 'consent', FILTER_VALIDATE_BOOLEAN);
-    if ($consent !== NULL && !get_option('h5p_has_request_user_consent', FALSE) && current_user_can('manage_options')) {
+    if ($consent !== NULL && !get_site_option('h5p_has_request_user_consent', FALSE) && current_user_can('manage_options')) {
       check_admin_referer('h5p_consent', 'can_has'); // Verify form
-      update_option('h5p_hub_is_enabled', $consent);
-      update_option('h5p_send_usage_statistics', $consent);
-      update_option('h5p_has_request_user_consent', TRUE);
+      update_site_option('h5p_hub_is_enabled', $consent);
+      update_site_option('h5p_send_usage_statistics', $consent);
+      update_site_option('h5p_has_request_user_consent', TRUE);
     }
 
     // Check if we have any content or errors loading content
@@ -434,8 +434,8 @@ class H5PContentAdmin {
       // Find out if tag exists and is linked to content
       $exists = $wpdb->get_row($wpdb->prepare(
           "SELECT t.id, ct.content_id
-             FROM {$wpdb->prefix}h5p_tags t
-        LEFT JOIN {$wpdb->prefix}h5p_contents_tags ct ON ct.content_id = %d AND ct.tag_id = t.id
+             FROM {$wpdb->base_prefix}h5p_tags t
+        LEFT JOIN {$wpdb->base_prefix}h5p_contents_tags ct ON ct.content_id = %d AND ct.tag_id = t.id
             WHERE t.name = %s",
           $content_id, $tag
       ));
@@ -443,7 +443,7 @@ class H5PContentAdmin {
       if (empty($exists)) {
         // Create tag
         $exists = array('name' => $tag);
-        $wpdb->insert("{$wpdb->prefix}h5p_tags", $exists, array('%s'));
+        $wpdb->insert("{$wpdb->base_prefix}h5p_tags", $exists, array('%s'));
         $exists = (object) $exists;
         $exists->id = $wpdb->insert_id;
       }
@@ -451,16 +451,16 @@ class H5PContentAdmin {
 
       if (empty($exists->content_id)) {
         // Connect to content
-        $wpdb->insert("{$wpdb->prefix}h5p_contents_tags", array('content_id' => $content_id, 'tag_id' => $exists->id), array('%d', '%d'));
+        $wpdb->insert("{$wpdb->base_prefix}h5p_contents_tags", array('content_id' => $content_id, 'tag_id' => $exists->id), array('%d', '%d'));
       }
     }
 
     // Remove tags that are not connected to content (old tags)
     $and_where = empty($tag_ids) ? '' : " AND tag_id NOT IN (". implode(',', $tag_ids) .")";
-    $wpdb->query("DELETE FROM {$wpdb->prefix}h5p_contents_tags WHERE content_id = {$content_id}{$and_where}");
+    $wpdb->query("DELETE FROM {$wpdb->base_prefix}h5p_contents_tags WHERE content_id = {$content_id}{$and_where}");
 
     // Maintain tags table by remove unused tags
-    $wpdb->query("DELETE t.* FROM {$wpdb->prefix}h5p_tags t LEFT JOIN {$wpdb->prefix}h5p_contents_tags ct ON t.id = ct.tag_id WHERE ct.content_id IS NULL");
+    $wpdb->query("DELETE t.* FROM {$wpdb->base_prefix}h5p_tags t LEFT JOIN {$wpdb->base_prefix}h5p_contents_tags ct ON t.id = ct.tag_id WHERE ct.content_id IS NULL");
   }
 
   /**
@@ -469,13 +469,13 @@ class H5PContentAdmin {
    * @since 1.1.0
    */
   public function display_new_content_page($custom_view) {
-    if (!get_option('h5p_has_request_user_consent', FALSE) && current_user_can('manage_options')) {
+    if (!get_site_option('h5p_has_request_user_consent', FALSE) && current_user_can('manage_options')) {
       // Get the user to enable the Hub before creating content
       return include_once('views/user-consent.php');
     }
 
     $contentExists = ($this->content !== NULL && !is_string($this->content));
-    $hubIsEnabled = get_option('h5p_hub_is_enabled', TRUE);
+    $hubIsEnabled = get_site_option('h5p_hub_is_enabled', TRUE);
 
     $plugin = H5P_Plugin::get_instance();
     $core = $plugin->get_h5p_instance('core');
@@ -532,7 +532,7 @@ class H5PContentAdmin {
   private function has_libraries() {
     global $wpdb;
 
-    return $wpdb->get_var("SELECT id FROM {$wpdb->prefix}h5p_libraries WHERE runnable = 1 LIMIT 1") !== NULL;
+    return $wpdb->get_var("SELECT id FROM {$wpdb->base_prefix}h5p_libraries WHERE runnable = 1 LIMIT 1") !== NULL;
   }
 
   /**
@@ -673,7 +673,7 @@ class H5PContentAdmin {
 
     printf('<button type="button" id="add-h5p" class="button" title="%s" data-method="%s">%s</button>',
         __('Insert interactive content', $this->plugin_slug),
-        get_option('h5p_insert_method', 'id'),
+        get_site_option('h5p_insert_method', 'id'),
         __('Add H5P', $this->plugin_slug)
     );
   }
@@ -746,8 +746,8 @@ class H5PContentAdmin {
     // Get content info for log
     $content = $wpdb->get_row($wpdb->prepare("
         SELECT c.title, l.name, l.major_version, l.minor_version
-          FROM {$wpdb->prefix}h5p_contents c
-          JOIN {$wpdb->prefix}h5p_libraries l ON l.id = c.library_id
+          FROM {$wpdb->base_prefix}h5p_contents c
+          JOIN {$wpdb->base_prefix}h5p_libraries l ON l.id = c.library_id
          WHERE c.id = %d
         ", $content_id));
 
@@ -841,7 +841,7 @@ class H5PContentAdmin {
    */
   private function format_time($timestamp) {
     // Get timezone offset
-    $offset = get_option('gmt_offset') * 3600;
+    $offset = get_site_option('gmt_offset') * 3600;
 
     // Format time
     $time = strtotime($timestamp);
@@ -855,7 +855,7 @@ class H5PContentAdmin {
       $human_time = date('Y/m/d', $time + $offset);
     }
     else {
-      $formatted_time = date(get_option('time_format'), $time + $offset);
+      $formatted_time = date(get_site_option('time_format'), $time + $offset);
     }
 
     $iso_time = date('c', $time);
@@ -935,7 +935,7 @@ class H5PContentAdmin {
     $content = array('user_id' => $result->user_id);
 
     // Add user results link
-    if (get_option('h5p_track_user', TRUE)) {
+    if (get_site_option('h5p_track_user', TRUE)) {
       if ($this->current_user_can_view_content_results($content)) {
         $row[] = '<a href="' . admin_url('admin.php?page=h5p&task=results&id=' . $result->id) . '">' . __('Results', $this->plugin_slug) . '</a>';
       }
@@ -963,7 +963,9 @@ class H5PContentAdmin {
    */
   private function get_h5peditor_instance() {
     if (self::$h5peditor === null) {
+      switch_to_blog(1);
       $upload_dir = wp_upload_dir();
+      restore_current_blog();
       $plugin = H5P_Plugin::get_instance();
       self::$h5peditor = new H5peditor(
         $plugin->get_h5p_instance('core'),

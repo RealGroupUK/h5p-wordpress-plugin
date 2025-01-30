@@ -62,12 +62,12 @@ class H5PContentQuery {
   public function __construct($fields, $offset = NULL, $limit = NULL, $order_by = NULL, $reverse_order = NULL, $filters = NULL) {
     global $wpdb;
 
-    $this->base_table = "{$wpdb->prefix}h5p_contents hc";
+    $this->base_table = "{$wpdb->base_prefix}h5p_contents hc";
     $this->valid_joins = array(
-      'hl' => " LEFT JOIN {$wpdb->prefix}h5p_libraries hl ON hl.id = hc.library_id",
-      't' => " LEFT JOIN {$wpdb->prefix}h5p_contents_tags ct ON ct.content_id = hc.id
-               LEFT JOIN {$wpdb->prefix}h5p_tags t ON ct.tag_id = t.id
-               LEFT JOIN {$wpdb->prefix}h5p_contents_tags ct2 ON ct2.content_id = hc.id"
+      'hl' => " LEFT JOIN {$wpdb->base_prefix}h5p_libraries hl ON hl.id = hc.library_id",
+      't' => " LEFT JOIN {$wpdb->base_prefix}h5p_contents_tags ct ON ct.content_id = hc.id
+               LEFT JOIN {$wpdb->base_prefix}h5p_tags t ON ct.tag_id = t.id
+               LEFT JOIN {$wpdb->base_prefix}h5p_contents_tags ct2 ON ct2.content_id = hc.id"
     );
 
     $this->join = array();

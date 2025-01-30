@@ -97,7 +97,9 @@ class H5PWordPress implements H5PFrameworkInterface {
    * Get the URL to a library file
    */
   public function getLibraryFileUrl($libraryFolderName, $fileName) {
+    switch_to_blog(1);
     $upload_dir = wp_upload_dir();
+    restore_current_blog();
     return $upload_dir['baseurl'] . '/h5p/libraries/' . $libraryFolderName . '/' . $fileName;
   }
 
@@ -155,7 +157,7 @@ class H5PWordPress implements H5PFrameworkInterface {
     // Get the lastest version which matches the input parameters
     $id = $wpdb->get_var($wpdb->prepare(
         "SELECT id
-        FROM {$wpdb->prefix}h5p_libraries
+        FROM {$wpdb->base_prefix}h5p_libraries
         {$sql_where}
         ORDER BY major_version DESC,
                  minor_version DESC,
@@ -181,7 +183,7 @@ class H5PWordPress implements H5PFrameworkInterface {
     $operator = $this->isInDevMode() ? '<=' : '<';
     return $wpdb->get_var($wpdb->prepare(
         "SELECT id
-          FROM {$wpdb->prefix}h5p_libraries
+          FROM {$wpdb->base_prefix}h5p_libraries
           WHERE name = '%s'
           AND major_version = %d
           AND minor_version = %d
@@ -216,15 +218,15 @@ class H5PWordPress implements H5PFrameworkInterface {
     return array(
       'content' => $skipContent ? -1 : intval($wpdb->get_var($wpdb->prepare(
           "SELECT COUNT(distinct c.id)
-          FROM {$wpdb->prefix}h5p_libraries l
-          JOIN {$wpdb->prefix}h5p_contents_libraries cl ON l.id = cl.library_id
-          JOIN {$wpdb->prefix}h5p_contents c ON cl.content_id = c.id
+          FROM {$wpdb->base_prefix}h5p_libraries l
+          JOIN {$wpdb->base_prefix}h5p_contents_libraries cl ON l.id = cl.library_id
+          JOIN {$wpdb->base_prefix}h5p_contents c ON cl.content_id = c.id
           WHERE l.id = %d",
           $id)
         )),
       'libraries' => intval($wpdb->get_var($wpdb->prepare(
           "SELECT COUNT(*)
-          FROM {$wpdb->prefix}h5p_libraries_libraries
+          FROM {$wpdb->base_prefix}h5p_libraries_libraries
           WHERE required_library_id = %d",
           $id)
         ))
@@ -265,7 +267,7 @@ class H5PWordPress implements H5PFrameworkInterface {
 
     if ($new) {
       $wpdb->insert(
-          $wpdb->prefix . 'h5p_libraries',
+          $wpdb->base_prefix . 'h5p_libraries',
           array(
             'name' => $library['machineName'],
             'title' => $library['title'],
@@ -308,7 +310,7 @@ class H5PWordPress implements H5PFrameworkInterface {
     }
     else {
       $wpdb->update(
-          $wpdb->prefix . 'h5p_libraries',
+          $wpdb->base_prefix . 'h5p_libraries',
           array(
             'title' => $library['title'],
             'patch_version' => $library['patchVersion'],
@@ -350,7 +352,7 @@ class H5PWordPress implements H5PFrameworkInterface {
 
     // Update languages
     $wpdb->delete(
-        $wpdb->prefix . 'h5p_libraries_languages',
+        $wpdb->base_prefix . 'h5p_libraries_languages',
         array('library_id' => $library['libraryId']),
         array('%d')
       );
@@ -358,7 +360,7 @@ class H5PWordPress implements H5PFrameworkInterface {
     if (isset($library['language'])) {
       foreach ($library['language'] as $languageCode => $translation) {
         $wpdb->insert(
-          $wpdb->prefix . 'h5p_libraries_languages',
+          $wpdb->base_prefix . 'h5p_libraries_languages',
           array(
             'library_id' => $library['libraryId'],
             'language_code' => $languageCode,
@@ -402,7 +404,7 @@ class H5PWordPress implements H5PFrameworkInterface {
     global $wpdb;
 
     $wpdb->delete(
-        $wpdb->prefix . 'h5p_libraries_libraries',
+        $wpdb->base_prefix . 'h5p_libraries_libraries',
         array('library_id' => $id),
         array('%d')
       );
@@ -418,9 +420,9 @@ class H5PWordPress implements H5PFrameworkInterface {
     H5PCore::deleteFileTree($this->getH5pPath() . '/libraries/' . $library->name . '-' . $library->major_version . '.' . $library->minor_version);
 
     // Remove library data from database
-    $wpdb->delete($wpdb->prefix . 'h5p_libraries_libraries', array('library_id' => $library->id), array('%d'));
-    $wpdb->delete($wpdb->prefix . 'h5p_libraries_languages', array('library_id' => $library->id), array('%d'));
-    $wpdb->delete($wpdb->prefix . 'h5p_libraries', array('id' => $library->id), array('%d'));
+    $wpdb->delete($wpdb->base_prefix . 'h5p_libraries_libraries', array('library_id' => $library->id), array('%d'));
+    $wpdb->delete($wpdb->base_prefix . 'h5p_libraries_languages', array('library_id' => $library->id), array('%d'));
+    $wpdb->delete($wpdb->base_prefix . 'h5p_libraries', array('id' => $library->id), array('%d'));
   }
 
   /**
@@ -431,9 +433,9 @@ class H5PWordPress implements H5PFrameworkInterface {
 
     foreach ($dependencies as $dependency) {
       $wpdb->query($wpdb->prepare(
-        "INSERT INTO {$wpdb->prefix}h5p_libraries_libraries (library_id, required_library_id, dependency_type)
+        "INSERT INTO {$wpdb->base_prefix}h5p_libraries_libraries (library_id, required_library_id, dependency_type)
         SELECT %d, hl.id, %s
-        FROM {$wpdb->prefix}h5p_libraries hl
+        FROM {$wpdb->base_prefix}h5p_libraries hl
         WHERE name = %s
         AND major_version = %d
         AND minor_version = %d
@@ -450,7 +452,7 @@ class H5PWordPress implements H5PFrameworkInterface {
     global $wpdb;
 
     $metadata = (array)$content['metadata'];
-    $table = $wpdb->prefix . 'h5p_contents';
+    $table = $wpdb->base_prefix . 'h5p_contents';
 
     $format = array();
     $data = array_merge(\H5PMetadata::toDBArray($metadata, true, true, $format), array(
@@ -524,9 +526,9 @@ class H5PWordPress implements H5PFrameworkInterface {
     global $wpdb;
 
     $wpdb->query($wpdb->prepare(
-        "INSERT INTO {$wpdb->prefix}h5p_contents_libraries (content_id, library_id, dependency_type, weight, drop_css)
+        "INSERT INTO {$wpdb->base_prefix}h5p_contents_libraries (content_id, library_id, dependency_type, weight, drop_css)
         SELECT %d, hcl.library_id, hcl.dependency_type, hcl.weight, hcl.drop_css
-          FROM {$wpdb->prefix}h5p_contents_libraries hcl
+          FROM {$wpdb->base_prefix}h5p_contents_libraries hcl
           WHERE hcl.content_id = %d",
         $contentId, $copyFromId)
       );
@@ -539,14 +541,14 @@ class H5PWordPress implements H5PFrameworkInterface {
     global $wpdb;
 
     // Remove content data and library usage
-    $wpdb->delete($wpdb->prefix . 'h5p_contents', array('id' => $id), array('%d'));
+    $wpdb->delete($wpdb->base_prefix . 'h5p_contents', array('id' => $id), array('%d'));
     $this->deleteLibraryUsage($id);
 
     // Remove user scores/results
-    $wpdb->delete($wpdb->prefix . 'h5p_results', array('content_id' => $id), array('%d'));
+    $wpdb->delete($wpdb->base_prefix . 'h5p_results', array('content_id' => $id), array('%d'));
 
     // Remove contents user/usage data
-    $wpdb->delete($wpdb->prefix . 'h5p_contents_user_data', array('content_id' => $id), array('%d'));
+    $wpdb->delete($wpdb->base_prefix . 'h5p_contents_user_data', array('content_id' => $id), array('%d'));
   }
 
   /**
@@ -555,7 +557,7 @@ class H5PWordPress implements H5PFrameworkInterface {
   public function deleteLibraryUsage($contentId) {
     global $wpdb;
 
-    $wpdb->delete($wpdb->prefix . 'h5p_contents_libraries', array('content_id' => $contentId), array('%d'));
+    $wpdb->delete($wpdb->base_prefix . 'h5p_contents_libraries', array('content_id' => $contentId), array('%d'));
   }
 
   /**
@@ -574,7 +576,7 @@ class H5PWordPress implements H5PFrameworkInterface {
     foreach ($librariesInUse as $dependency) {
       $dropCss = in_array($dependency['library']['machineName'], $dropLibraryCssList) ? 1 : 0;
       $wpdb->insert(
-          $wpdb->prefix . 'h5p_contents_libraries',
+          $wpdb->base_prefix . 'h5p_contents_libraries',
           array(
             'content_id' => $contentId,
             'library_id' => $dependency['library']['libraryId'],
@@ -603,7 +605,7 @@ class H5PWordPress implements H5PFrameworkInterface {
         "SELECT id as libraryId, name as machineName, title, major_version as majorVersion, minor_version as minorVersion, patch_version as patchVersion,
           embed_types as embedTypes, preloaded_js as preloadedJs, preloaded_css as preloadedCss, drop_library_css as dropLibraryCss, fullscreen, runnable,
           semantics, has_icon as hasIcon
-        FROM {$wpdb->prefix}h5p_libraries
+        FROM {$wpdb->base_prefix}h5p_libraries
         WHERE name = %s
         AND major_version = %d
         AND minor_version = %d",
@@ -615,8 +617,8 @@ class H5PWordPress implements H5PFrameworkInterface {
 
     $dependencies = $wpdb->get_results($wpdb->prepare(
         "SELECT hl.name as machineName, hl.major_version as majorVersion, hl.minor_version as minorVersion, hll.dependency_type as dependencyType
-        FROM {$wpdb->prefix}h5p_libraries_libraries hll
-        JOIN {$wpdb->prefix}h5p_libraries hl ON hll.required_library_id = hl.id
+        FROM {$wpdb->base_prefix}h5p_libraries_libraries hll
+        JOIN {$wpdb->base_prefix}h5p_libraries hl ON hll.required_library_id = hl.id
         WHERE hll.library_id = %d",
         $library['libraryId'])
       );
@@ -660,7 +662,7 @@ class H5PWordPress implements H5PFrameworkInterface {
     else {
       $semantics = $wpdb->get_var($wpdb->prepare(
           "SELECT semantics
-          FROM {$wpdb->prefix}h5p_libraries
+          FROM {$wpdb->base_prefix}h5p_libraries
           WHERE name = %s
           AND major_version = %d
           AND minor_version = %d",
@@ -720,8 +722,8 @@ class H5PWordPress implements H5PFrameworkInterface {
               , hc.changes AS changes
               , hc.default_language AS defaultLanguage
               , hc.a11y_title AS a11yTitle
-        FROM {$wpdb->prefix}h5p_contents hc
-        JOIN {$wpdb->prefix}h5p_libraries hl ON hl.id = hc.library_id
+        FROM {$wpdb->base_prefix}h5p_contents hc
+        JOIN {$wpdb->base_prefix}h5p_libraries hl ON hl.id = hc.library_id
         WHERE hc.id = %d",
         $id),
         ARRAY_A
@@ -764,8 +766,8 @@ class H5PWordPress implements H5PFrameworkInterface {
               , hl.preloaded_js AS preloadedJs
               , hcl.drop_css AS dropCss
               , hcl.dependency_type AS dependencyType
-        FROM {$wpdb->prefix}h5p_contents_libraries hcl
-        JOIN {$wpdb->prefix}h5p_libraries hl ON hcl.library_id = hl.id
+        FROM {$wpdb->base_prefix}h5p_contents_libraries hcl
+        JOIN {$wpdb->base_prefix}h5p_libraries hl ON hcl.library_id = hl.id
         WHERE hcl.content_id = %d";
     $queryArgs = array($id);
 
@@ -788,7 +790,7 @@ class H5PWordPress implements H5PFrameworkInterface {
     if ($name === 'site_uuid') {
       $name = 'h5p_site_uuid'; // Make up for old core bug
     }
-    return get_option('h5p_' . $name, $default);
+    return get_site_option('h5p_' . $name, $default);
   }
 
 
@@ -812,10 +814,10 @@ class H5PWordPress implements H5PFrameworkInterface {
     } else {
       $name = 'h5p_' . $name; // Always prefix to avoid conflicts
       if ($var === FALSE) {
-        add_option($name, $value);
+        add_site_option($name, $value);
       }
       else {
-        update_option($name, $value);
+        update_site_option($name, $value);
       }
     }
   }
@@ -851,7 +853,7 @@ class H5PWordPress implements H5PFrameworkInterface {
     }
 
     $wpdb->update(
-      $wpdb->prefix . 'h5p_contents',
+      $wpdb->base_prefix . 'h5p_contents',
       $processedFields,
       array('id' => $id),
       $format,
@@ -865,7 +867,7 @@ class H5PWordPress implements H5PFrameworkInterface {
     global $wpdb;
 
     $wpdb->query($wpdb->prepare(
-      "UPDATE {$wpdb->prefix}h5p_contents
+      "UPDATE {$wpdb->base_prefix}h5p_contents
           SET filtered = NULL
         WHERE library_id IN (%s)",
       implode(',', $library_ids))
@@ -880,7 +882,7 @@ class H5PWordPress implements H5PFrameworkInterface {
 
     return (int) $wpdb->get_var(
       "SELECT COUNT(id)
-        FROM {$wpdb->prefix}h5p_contents
+        FROM {$wpdb->base_prefix}h5p_contents
         WHERE filtered = ''"
     );
   }
@@ -894,7 +896,7 @@ class H5PWordPress implements H5PFrameworkInterface {
 
     return (int) $wpdb->get_var($wpdb->prepare(
       "SELECT COUNT(id)
-         FROM {$wpdb->prefix}h5p_contents
+         FROM {$wpdb->base_prefix}h5p_contents
         WHERE library_id = %d
               {$skip_query}",
       $library_id
@@ -910,7 +912,7 @@ class H5PWordPress implements H5PFrameworkInterface {
 
     $results = $wpdb->get_results(
         "SELECT id, name, title, major_version, minor_version, patch_version, runnable, restricted
-          FROM {$wpdb->prefix}h5p_libraries
+          FROM {$wpdb->base_prefix}h5p_libraries
           ORDER BY title ASC, major_version ASC, minor_version ASC"
     );
 
@@ -989,7 +991,7 @@ class H5PWordPress implements H5PFrameworkInterface {
     global $wpdb;
 
     $wpdb->update(
-      $wpdb->prefix . 'h5p_libraries',
+      $wpdb->base_prefix . 'h5p_libraries',
       array('tutorial_url' => $url),
       array('name' => $library_name),
       array('%s'),
@@ -1005,7 +1007,7 @@ class H5PWordPress implements H5PFrameworkInterface {
 
     // Reset user datas for this content
     $wpdb->update(
-      $wpdb->prefix . 'h5p_contents_user_data',
+      $wpdb->base_prefix . 'h5p_contents_user_data',
       array(
         'updated_at' => current_time('mysql', 1),
         'data' => 'RESET'
@@ -1024,7 +1026,7 @@ class H5PWordPress implements H5PFrameworkInterface {
    */
   public function isContentSlugAvailable($slug) {
     global $wpdb;
-    return !$wpdb->get_var($wpdb->prepare("SELECT slug FROM {$wpdb->prefix}h5p_contents WHERE slug = '%s'", $slug));
+    return !$wpdb->get_var($wpdb->prepare("SELECT slug FROM {$wpdb->base_prefix}h5p_contents WHERE slug = '%s'", $slug));
   }
 
   /**
@@ -1037,7 +1039,7 @@ class H5PWordPress implements H5PFrameworkInterface {
     // Find number of content per library
     $results = $wpdb->get_results("
         SELECT l.name, l.major_version, l.minor_version, COUNT(*) AS count
-          FROM {$wpdb->prefix}h5p_contents c, {$wpdb->prefix}h5p_libraries l
+          FROM {$wpdb->base_prefix}h5p_contents c, {$wpdb->base_prefix}h5p_libraries l
          WHERE c.library_id = l.id
       GROUP BY l.name, l.major_version, l.minor_version
         ");
@@ -1060,7 +1062,7 @@ class H5PWordPress implements H5PFrameworkInterface {
         SELECT library_name AS name,
                library_version AS version,
                num
-          FROM {$wpdb->prefix}h5p_counters
+          FROM {$wpdb->base_prefix}h5p_counters
          WHERE type = %s
         ", $type));
 
@@ -1079,7 +1081,7 @@ class H5PWordPress implements H5PFrameworkInterface {
     global $wpdb;
     return $wpdb->get_var("
         SELECT COUNT(DISTINCT user_id)
-          FROM {$wpdb->prefix}h5p_contents
+          FROM {$wpdb->base_prefix}h5p_contents
     ");
   }
 
@@ -1096,7 +1098,7 @@ class H5PWordPress implements H5PFrameworkInterface {
     foreach ($libraries as $library) {
       // TODO: Avoid errors if they already exists...
       $wpdb->insert(
-          "{$wpdb->prefix}h5p_libraries_cachedassets",
+          "{$wpdb->base_prefix}h5p_libraries_cachedassets",
           array(
             'library_id' => isset($library['id']) ? $library['id'] : $library['libraryId'],
             'hash' => $key
@@ -1117,7 +1119,7 @@ class H5PWordPress implements H5PFrameworkInterface {
     // Get all the keys so we can remove the files
     $results = $wpdb->get_results($wpdb->prepare("
         SELECT hash
-          FROM {$wpdb->prefix}h5p_libraries_cachedassets
+          FROM {$wpdb->base_prefix}h5p_libraries_cachedassets
          WHERE library_id = %d
         ", $library_id));
 
@@ -1127,7 +1129,7 @@ class H5PWordPress implements H5PFrameworkInterface {
       $hashes[] = $key->hash;
 
       $wpdb->delete(
-          "{$wpdb->prefix}h5p_libraries_cachedassets",
+          "{$wpdb->base_prefix}h5p_libraries_cachedassets",
           array('hash' => $key->hash),
           array('%s'));
     }
@@ -1269,8 +1271,8 @@ class H5PWordPress implements H5PFrameworkInterface {
               l1.major_version as majorVersion, l1.minor_version as minorVersion,
               l1.patch_version as patchVersion, l1.add_to as addTo,
               l1.preloaded_js as preloadedJs, l1.preloaded_css as preloadedCss
-        FROM {$wpdb->prefix}h5p_libraries AS l1
-        LEFT JOIN {$wpdb->prefix}h5p_libraries AS l2
+        FROM {$wpdb->base_prefix}h5p_libraries AS l1
+        LEFT JOIN {$wpdb->base_prefix}h5p_libraries AS l2
           ON l1.name = l2.name AND
             (l1.major_version < l2.major_version OR
               (l1.major_version = l2.major_version AND
@@ -1300,7 +1302,7 @@ class H5PWordPress implements H5PFrameworkInterface {
 
     return $wpdb->get_var($wpdb->prepare(
         "SELECT id
-          FROM {$wpdb->prefix}h5p_libraries
+          FROM {$wpdb->base_prefix}h5p_libraries
           WHERE name = '%s'
           AND (major_version > %d
            OR (major_version = %d AND minor_version > %d))
