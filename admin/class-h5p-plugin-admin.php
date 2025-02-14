@@ -783,6 +783,9 @@ class H5P_Plugin_Admin {
       'finished' => filter_input(INPUT_POST, 'finished', FILTER_VALIDATE_INT),
       'time' => filter_input(INPUT_POST, 'finished', FILTER_VALIDATE_INT) - filter_input(INPUT_POST, 'opened', FILTER_VALIDATE_INT),
     );
+
+    $data = apply_filters('h5p_alter_h5p_results', $data);
+
     if ($data['time'] === NULL) {
       $data['time'] = 0;
     }

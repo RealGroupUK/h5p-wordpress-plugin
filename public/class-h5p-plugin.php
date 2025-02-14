@@ -1064,7 +1064,8 @@ class H5P_Plugin {
           ? $content['metadata']['title']
           : ''
         );
-        $h5p_content_wrapper = '<div class="h5p-iframe-wrapper"><iframe id="h5p-iframe-' . $content['id'] . '" class="h5p-iframe" data-content-id="' . $content['id'] . '" style="height:1px" src="about:blank" frameBorder="0" scrolling="no" title="' . $title . '"></iframe></div>';
+        $h5p_content_wrapper = '<div class="h5p-iframe-wrapper"><iframe src="'.admin_url('admin-ajax.php').'?action=h5p_embed&id='.$content['id'].'" id="h5p-iframe-' . $content['id'] . '" class="h5p-iframe" data-content-id="' . $content['id'] . '" style="" frameBorder="0" scrolling="no" title="' . $title . '"></iframe></div>';
+        //$h5p_content_wrapper = '<div class="h5p-iframe-wrapper"><iframe src="'.admin_url('admin-ajax.php?action=h5p_embed&id='.$content['id']).'" class="h5p-iframe" style=""></iframe></div>';
     }
 
     return apply_filters('print_h5p_content', $h5p_content_wrapper, $content);
