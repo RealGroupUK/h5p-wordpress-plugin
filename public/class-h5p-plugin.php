@@ -439,7 +439,7 @@ class H5P_Plugin {
 
     $current_version = get_site_option('h5p_version');
     if ($current_version === self::VERSION) {
-      //return; // Same version as before
+      return; // Same version as before
     }
 
     // We have a new version!
