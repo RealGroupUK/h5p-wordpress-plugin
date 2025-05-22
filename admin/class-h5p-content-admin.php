@@ -872,7 +872,7 @@ class H5PContentAdmin {
   private function format_tags($tags) {
     // Tags come in CSV format, create Array instead
     $result = array();
-    $csvtags = explode(';', $tags);
+    $csvtags = explode(';', (string) $tags);
     foreach ($csvtags as $csvtag) {
       if ($csvtag !== '') {
         $tag = explode(',', $csvtag);
