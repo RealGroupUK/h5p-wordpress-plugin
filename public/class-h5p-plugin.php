@@ -24,7 +24,7 @@ class H5P_Plugin {
    * @since 1.0.0
    * @var string
    */
-  const VERSION = '1.16.0';
+  const VERSION = '1.16.2';
 
   /**
    * The Unique identifier for this plugin.
@@ -904,11 +904,11 @@ class H5P_Plugin {
       $row=$wpdb->get_row($q,ARRAY_A);
 
       if ($wpdb->last_error) {
-        return sprintf(__('Database error: %s.', $this->plugin_slug), $wpdb->last_error);
+        return sprintf(__('Database error: %s.', $this->plugin_slug), esc_html($wpdb->last_error));
       }
 
       if (!isset($row['id'])) {
-        return sprintf(__('Cannot find H5P content with slug: %s.', $this->plugin_slug), $atts['slug']);
+        return sprintf(__('Cannot find H5P content with slug: %s.', $this->plugin_slug), esc_html($atts['slug']));
       }
 
       $atts['id']=$row['id'];
@@ -1065,7 +1065,6 @@ class H5P_Plugin {
           : ''
         );
         $h5p_content_wrapper = '<div class="h5p-iframe-wrapper"><iframe src="'.admin_url('admin-ajax.php').'?action=h5p_embed&id='.$content['id'].'" id="h5p-iframe-' . $content['id'] . '" class="h5p-iframe" data-content-id="' . $content['id'] . '" style="" frameBorder="0" scrolling="no" title="' . $title . '"></iframe></div>';
-        //$h5p_content_wrapper = '<div class="h5p-iframe-wrapper"><iframe src="'.admin_url('admin-ajax.php?action=h5p_embed&id='.$content['id']).'" class="h5p-iframe" style=""></iframe></div>';
     }
 
     return apply_filters('print_h5p_content', $h5p_content_wrapper, $content);
