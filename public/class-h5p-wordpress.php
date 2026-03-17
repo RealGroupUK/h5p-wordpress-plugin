@@ -1,6 +1,7 @@
 <?php
 
 class H5PWordPress implements H5PFrameworkInterface {
+  protected $plugin_slug;
 
   /**
    * Kesps track of messages for the user.
@@ -977,7 +978,7 @@ class H5PWordPress implements H5PFrameworkInterface {
       $this->setErrorMessage($response->get_error_message(), 'failed-fetching-external-data');
       return FALSE;
     }
-    elseif ($response['response']['code'] === 200) {
+    elseif ($response['response']['code'] >= 200 && $response['response']['code'] < 300) {
       return empty($response['body']) ? TRUE : $response['body'];
     }
 
