@@ -24,7 +24,7 @@ class H5P_Plugin {
    * @since 1.0.0
    * @var string
    */
-  const VERSION = '1.17.6';
+  const VERSION = '1.17.8';
 
   /**
    * The Unique identifier for this plugin.
@@ -519,7 +519,7 @@ class H5P_Plugin {
                  ($v->major === 1 && $v->minor === 17 && $v->patch < 6)); // < 1.17.5
     if ($pre_1176) {
       // Clear filteredParameters
-      $wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}h5p_contents SET filtered = ''"));
+      $wpdb->query("UPDATE {$wpdb->prefix}h5p_contents SET filtered = ''");
     }
 
     // Keep track of which version of the plugin we have.
